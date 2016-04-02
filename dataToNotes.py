@@ -152,8 +152,22 @@ def beatsToXML(beats):
 				if beat >= 4:
 					print "Something went wrong, beat is greater than 4."
 				notes = measBeats[beat] #list [(pitch, length)]
-				if currBeat < beat: # Fill in a rest
-					fillInRest(thisMeasure, beat - currBeat)
+				if currBeat < beat: # Fill space with note or rest
+					lastElem = thisMeasure.get_last()
+					print lastElem, type(lastElem)
+					if lastElem != None:
+						print "attempted extend"
+
+						#extend note to now, if possible
+						newLen = beat - currBeat + dottedLengthToNum(lastElem.note_length, lastElem.dot_string != "")
+						if newLen in beatToNum.values():
+							newLenStr, newLenDotted = convDot(numToBeat[newLen], 4)
+							lastElem.note_length = newLenStr
+							lastElem.set_dot(newLenDotted)
+						else: 
+							fillInRest(thisMeasure, beat-currBeat)
+					else:
+						fillInRest(thisMeasure, beat - currBeat)
 					currBeat = beat
 
 				lenMax = 4 - currBeat
@@ -183,8 +197,21 @@ def beatsToXML(beats):
 						currBeat += min(beatToNum[notes[0][1]], lenMax)
 					else: 
 						print "Something went wrong in dataToNotes.py, beatsToXML."
-			if currBeat < 4: # trailing rest in measure
-				fillInRest(thisMeasure, 4-currBeat)
+			if currBeat < 4: # fill rest of measure with note or rest
+				lastElem = thisMeasure.get_last()
+				print lastElem, type(lastElem)
+				if lastElem != None:
+					print "attempted extend"
+					#extend note to now, if possible
+					newLen = 4 - currBeat + dottedLengthToNum(lastElem.note_length, lastElem.dot_string != "")
+					if newLen in beatToNum.values():
+						newLenStr, newLenDotted = convDot(numToBeat[newLen], 4)
+						lastElem.note_length = newLenStr
+						lastElem.set_dot(newLenDotted)
+					else: 
+						fillInRest(thisMeasure, beat-currBeat)
+				else:
+					fillInRest(thisMeasure, beat - currBeat)
 		measNum += 1
 	print score
 	score.write_to_file()
@@ -238,6 +265,11 @@ def convPitch(pitch):
 		return pitch[0], int(pitch[1]), ""
 	return pitch[0:1], int(pitch[2]), "sharp"
 
+def dottedLengthToNum(note_length, isDotted):
+	l = beatToNum[note_length]
+	if isDotted:
+		return l * 1.5
+	return l
 def approxBeatNum16(time, beatLength): 
 	beat = time/beatLength
 	return round(beat * 4) / 4
