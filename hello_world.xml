@@ -1,0 +1,59 @@
+<score-partwise version="3.0">
+	<part-list>
+		<score-part id="P0">
+			<part-name>hello_world</part-name>
+		</score-part>
+	</part-list>
+	<part id="P0">
+		<measure number="1">
+			<attributes>
+				<divisions>1</divisions>
+				<time>
+					<beats>4</beats>
+					<beat-type>4</beat-type>
+				</time>
+				<clef>
+					<sign>G</sign>
+					<line>2</line>
+				</clef>
+			</attributes>
+			<note>
+				<pitch>
+					<step>G</step>
+					<octave>5</octave>
+					<alter>1</alter>
+				</pitch>
+				<type>quarter</type>
+				<dot/>
+			</note>
+			<note>
+				<chord/>
+				<pitch>
+					<step>A</step>
+					<octave>6</octave>
+					<alter>-1</alter>
+				</pitch>
+				<type>quarter</type>
+				<dot/>
+			</note>
+			<note>
+				<rest/>
+				<type>quarter</type>
+				<dot/>
+			</note>
+		</measure>
+		<measure number="2">
+			<attributes>
+				<divisions>1</divisions>
+			</attributes>
+			<note>
+				<pitch>
+					<step>F</step>
+					<octave>4</octave>
+					<alter>0</alter>
+				</pitch>
+				<type>quarter</type>
+			</note>
+		</measure>
+	</part>
+</score-partwise>
