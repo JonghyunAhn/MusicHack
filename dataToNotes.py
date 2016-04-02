@@ -17,15 +17,18 @@ beatToNum = {"16th" : 0.25,    # d signals dotted note
 numToBeat = dict((y, x) for x, y in beatToNum.iteritems())
 numToBeat[3.75] = "whole"
 numToBeat[3.5] = "whole"
-
-
-
+numToBeat[3.25] = "dhalf"
+numToBeat[2.75] = "dhalf"
+numToBeat[2.5] = "dhalf"
+numToBeat[2.25] = "half"
+numToBeat[1.75] = "half"
+numToBeat[1.25] = "quarter"
 ##Jong calls this. Passes in array of arrays of notes, sample rate, and tempo
 ## Tempo (bpm)
-def processNotes(notes = [], sampleRate = 44100.0, tempo = 120.0):
+def processNotes(notes = [], sampleRate = 44100.0, tempo = 110.0):
 
 	notes = filterNoise(notes)
-	deltaT = 1.0/(sampleRate/4096.0)
+	deltaT = 1.0/(sampleRate/512.0)
 	beatsPerSec = tempo/60.0
 	beatLength = 1.0/beatsPerSec
 	beatsPerMeasure = 4 #assumed
@@ -40,26 +43,37 @@ def processNotes(notes = [], sampleRate = 44100.0, tempo = 120.0):
 # return: a list of (pitch, startTime, endTime)
 # Tested and works well with artificial array. 
 def findNoteTimes(allNotes, deltaT):
-	allNotes.append([]) # to detect the last note stopped.
-	currentNotes = {} #pitch : startTime
+	allNotes.append([]) #hacky solution to detect last note hit.
+	currentNotes = {} #pitch : [startTime, lastSeen]
 	out = []
 	time = 0
 	for notes in allNotes:
 		prevNotes = set(list(currentNotes.keys())) ##Double check that this list is populated correctly
 		
-		# Track notes that are starting in this timestamp
+		# Update notes in this timestamp
 		for note in notes: 
 			if note not in currentNotes: # note is starting here
-				currentNotes[note] = time
+				currentNotes[note] = [time, 0]
+			else:
+				currentNotes[note][1] = 0
 
 		# Find notes that end in this timestamp and track in Out
-		notes = set(notes)
-		ended = prevNotes - notes
-		for note in list(ended):
-			out.append((note, currentNotes.pop(note), time))
-
+		toPop = []
+		for note in currentNotes:
+			currentNotes[note][1] += 1
+			if currentNotes[note][1] > 3: #Note ends here
+				if  (time - currentNotes[note][0]) > 0.15: #real note
+					out.append((note, currentNotes[note][0], time))
+				toPop.append(note)
+		for note in toPop:
+			currentNotes.pop(note)
 		time += deltaT
+	for note in currentNotes:
+		out.append((note, currentNotes[note][0], time))
+	# for note in out:
+	# 	print note
 
+	# print "================================"
 	return out
 
 #Converts notes' raw start and end times to actual XML using Leo's functions.
@@ -75,6 +89,7 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 	beats = {} # Dict of dicts {measNum : {beatInMeas: [(pitch, length)]}}
 	for note in startEndTimes:
 		#Extract useful values for this note
+
 		pitch = note[0]
 		startBeat = approxBeatNum16(note[1], beatLength)
 		endBeat = approxBeatNum16(note[2], beatLength)
@@ -82,6 +97,11 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 		beatLen = endBeat - startBeat
 		if endBeat > (measNum + 1) * 4:
 			beatLen = (measNum + 1) * 4 - startBeat
+		# print note
+		# print "\t beatLen: ", beatLen
+		# print "\t beatLength", beatLength
+		# print "\t startBeat", startBeat
+		# print "\t endBeat", endBeat
 		if beatLen != 0:
 			if beatLen <= 1:
 				beatLen = numToBeat[approxBeatNum16(beatLen, 1)]
@@ -101,8 +121,9 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 			if beatInMeas not in thisMeasure:
 				thisMeasure[beatInMeas] = []
 			thisMeasure[beatInMeas].append((pitch, beatLen))
-	print "Notes: ", notes
-	print "Beats: ", beats
+
+	for meas in beats:
+		print meas, beats[meas]
 	beatsToXML(beats)
 
 #Converts a beats dictionary, divided by measure, into useful chord, note, rest definitions
@@ -129,6 +150,7 @@ def beatsToXML(beats):
 				notes = measBeats[beat] #list [(pitch, length)]
 				if currBeat < beat: # Fill in a rest
 					fillInRest(thisMeasure, beat - currBeat)
+					currBeat = beat
 
 				lenMax = 4 - currBeat
 				if lenMax != 0:
@@ -141,8 +163,8 @@ def beatsToXML(beats):
 							trailingMeasures = True
 						chordLen, dotted = convDot(chordLen, lenMax)
 						for note in notes:
-							pitch, octave = convPitch(note[0])
-							c.add_note(Note(pitch, octave, chordLen, dotted))
+							pitch, octave, sharp = convPitch(note[0])
+							c.add_note(Note(pitch, octave, chordLen, dotted, sharp))
 						thisMeasure.add_element(c)
 						currBeat += min(beatToNum[chordLen], lenMax)
 
@@ -152,8 +174,8 @@ def beatsToXML(beats):
 							addOverflow(notes, numToBeat[overflowLen], beats, measNum + 1)
 							trailingMeasures = True
 						noteLen, dotted = convDot(notes[0][1], lenMax)
-						pitch, octave = convPitch(notes[0][0])
-						thisMeasure.add_element(Note(pitch, octave, noteLen, dotted))
+						pitch, octave, sharp = convPitch(notes[0][0])
+						thisMeasure.add_element(Note(pitch, octave, noteLen, dotted, sharp))
 						currBeat += min(beatToNum[notes[0][1]], lenMax)
 					else: 
 						print "Something went wrong in dataToNotes.py, beatsToXML."
@@ -209,8 +231,8 @@ def convDot(beatLen, lenMax):
 
 def convPitch(pitch):
 	if len(pitch) == 2:
-		return pitch[0], int(pitch[1])
-	return pitch[0:2], int(pitch[2])
+		return pitch[0], int(pitch[1]), ""
+	return pitch[0:1], int(pitch[2]), "sharp"
 
 def approxBeatNum16(time, beatLength): 
 	beat = time/beatLength
