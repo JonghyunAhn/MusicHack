@@ -96,7 +96,10 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 # Untested.
 def beatsToXML(beats):
 	score = Score("a song", 4, 1) #assumed for now
-	for measNum in range(int(totalNumMeasures + 1)):
+	measNum = 0
+	trailingMeasures = False
+	while measNum <= int(totalNumMeasures) or trailingMeasures:
+		trailingMeasures = False
 		thisMeasure = Measure()
 		score.add_measure(thisMeasure)
 		measBeats = beats.get(measNum) # dictionary {beatInmeas: [(pitch, length)]}
@@ -106,34 +109,63 @@ def beatsToXML(beats):
 		else: 
 			currBeat = 0 #when the previous note ended
 			for beat in sorted(measBeats.keys()):
+				if beat >= 4:
+					print "Something went wrong, beat is greater than 4."
 				notes = measBeats[beat] #list [(pitch, length)]
 				if currBeat < beat: # Fill in a rest
 					restLen = numToBeat[beat-currBeat]
-					restLen, dotted = convDot(restLen)
+					restLen, dotted = convDot(restLen, 4)
 					thisMeasure.add_element(Rest(restLen, dotted))
 					currBeat = beat
+
+				lenMax = 4 - currBeat
 				if len(notes) > 1: # Make chord
 					c = Chord()
 					chordLen = notes[0][1] #assume all notes in chord same len
-					chordLen, dotted = convDot(chordLen)
+					if beatToNum[chordLen] > lenMax: #rest of chord overflows into next measure
+						overflowLen = beatToNum[chordLen] - lenMax
+						addOverflow(notes, numToBeat[overflowLen], beats, measNum + 1)
+						trailingMeasures = True
+					chordLen, dotted = convDot(chordLen, lenMax)
 					for note in notes:
 						pitch, octave = convPitch(note[0])
 						c.add_note(Note(pitch, octave, chordLen, dotted))
 					thisMeasure.add_element(c)
-					currBeat += beatToNum[chordLen]
-				elif len(notes) == 1:
-					noteLen, dotted = convDot(notes[0][1])
+					currBeat += min(beatToNum[chordLen], lenMax)
+
+				elif len(notes) == 1: # Make note
+					if (beatToNum[notes[0][1]] + currBeat) > 4: #rest of note overflows into next measure
+						overflowLen = (beatToNum[notes[0][1]] + currBeat) - 4
+						addOverflow(notes, numToBeat[overflowLen], beats, measNum + 1)
+						trailingMeasures = True
+					noteLen, dotted = convDot(notes[0][1], lenMax)
 					pitch, octave = convPitch(notes[0][0])
 					thisMeasure.add_element(Note(pitch, octave, noteLen, dotted))
-					currBeat += beatToNum[notes[0][1]]
+					currBeat += min(beatToNum[notes[0][1]], lenMax)
 				else: 
 					print "Something went wrong in dataToNotes.py, beatsToXML."
-			if currBeat != 4: # trailing rest in measure
-				restLen, dotted = convDot(numToBeat[4 - currBeat])
+			if currBeat < 4: # trailing rest in measure
+				restLen, dotted = convDot(numToBeat[4 - currBeat], 4)
 				thisMeasure.add_element(Rest(restLen, dotted))
+		measNum += 1
 	print score
 
-def convDot(beatLen):
+##Helper function for beatsToXML
+# notes: list [(pitch, length)], length is previous length, don't use.
+# length: string length
+# beats: dict of dicts {measNum : {beatInMeas: [(pitch, length)]}}
+# meas: measure to add to
+def addOverflow(notes, length, beats, meas):
+	if beats.get(meas) is None:
+		beats[meas] = {} # make new measure
+	if beats[meas].get(0) is None:
+		beats[meas][0] = []
+	for note in notes:
+		beats[meas][0].append((note[0], length))
+
+def convDot(beatLen, lenMax):
+	if beatToNum[beatLen] > lenMax:
+		return convDot(numToBeat[lenMax], 4)
 	dotted = False
 	if beatLen[0] == 'd':
 		beatLen = beatLen[1:]
@@ -159,14 +191,17 @@ def filterNoise(notes):
 
 def makeNotes(freq):
 	# Use only a "r" in notes to specify a rest. Use "abc" or corresponding values to specify chord".
-	notes = [("a2c2", 2), ("b2", 1), ("a2", 1), 
+	notes = [("A2A2", 2), ("B2", 1), ("A2", 1), 
 		("r", 4), 
-		("c3", 4), 
-		("a3", 0.25), ("b3", 0.25), ("c2", 0.5), ("a2", 0.5),  ("b2", 0.5), ("r", 2),
-		("r", 2), ("a4", 1), ("r", 0.5), ("b4", 0.5),
-		("a5", 1), ("r", 2), ("b5", 1),
-		("a5", 3), ("r", 1),
-		("a5", 1.5), ("r", 0.5), ("b5", 0.75), ("r", 0.25), ("c5", 1)]
+		("C3", 4), 
+		("A3", 0.25), ("B3", 0.25), ("C2", 0.5), ("A2", 0.5),  ("B2", 0.5), ("r", 2),
+		("r", 2), ("A4", 1), ("r", 0.5), ("B4", 0.5),
+		("A5", 1), ("r", 2), ("B5", 1),
+		("A5", 3), ("r", 1),
+		("A5", 1.5), ("r", 0.5), ("B5", 0.75), ("r", 0.25), ("C5", 1),
+		("A3", 0.75), ("A2", 0.25), ("A3", 0.25), ("r", 0.75), ("C3", 2), 
+		("A2", 3), ("B2", 2), ("r", 3),
+		("A3", 2), ("B2", 4)]
 	out = []
 	for note in notes:
 		pitches = note[0]
