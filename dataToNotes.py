@@ -1,4 +1,4 @@
-from myMusicXML_bindings import *
+from musicXML_bindings import *
 ## TODO:
 ## Parse pitch and octave
 ## Handle ties over between measures
@@ -102,7 +102,7 @@ def beatsToXML(beats):
 		measBeats = beats.get(measNum) # dictionary {beatInmeas: [(pitch, length)]}
 
 		if measBeats is None:
-			thisMeasure.add_rest(Rest(numToBeat[4], False))
+			thisMeasure.add_element(Rest(numToBeat[4], False))
 		else: 
 			currBeat = 0 #when the previous note ended
 			for beat in sorted(measBeats.keys()):
@@ -110,7 +110,7 @@ def beatsToXML(beats):
 				if currBeat < beat: # Fill in a rest
 					restLen = numToBeat[beat-currBeat]
 					restLen, dotted = convDot(restLen)
-					thisMeasure.add_rest(Rest(restLen, dotted))
+					thisMeasure.add_element(Rest(restLen, dotted))
 					currBeat = beat
 				if len(notes) > 1: # Make chord
 					c = Chord()
@@ -119,18 +119,18 @@ def beatsToXML(beats):
 					for note in notes:
 						pitch, octave = convPitch(note[0])
 						c.add_note(Note(pitch, octave, chordLen, dotted))
-					thisMeasure.add_chord(c)
+					thisMeasure.add_element(c)
 					currBeat += beatToNum[chordLen]
 				elif len(notes) == 1:
 					noteLen, dotted = convDot(notes[0][1])
 					pitch, octave = convPitch(notes[0][0])
-					thisMeasure.add_note(Note(pitch, octave, noteLen, dotted))
+					thisMeasure.add_element(Note(pitch, octave, noteLen, dotted))
 					currBeat += beatToNum[notes[0][1]]
 				else: 
 					print "Something went wrong in dataToNotes.py, beatsToXML."
 			if currBeat != 4: # trailing rest in measure
 				restLen, dotted = convDot(numToBeat[4 - currBeat])
-				thisMeasure.add_rest(Rest(restLen, dotted))
+				thisMeasure.add_element(Rest(restLen, dotted))
 	print score
 
 def convDot(beatLen):

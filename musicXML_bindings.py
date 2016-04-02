@@ -17,20 +17,32 @@ class Score:
         self.measures = []
 
     def add_measure(self, measure):
-        pass
+        self.measures.append(measure)
 
     def get_xml(self):
         pass
+
+    def __str__(self):
+        s = "Score: "+ self.name + " " +  str(self.beats) + " " +  str(self.beat_type) + "\n"
+        for measure in self.measures:
+            s += str(measure) + "\n"
+        return s
 
 class Measure:
     def __init__(self):
         self.elements = []
 
     def add_element(self, element):
-        self.elements.add(element)
+        self.elements.append(element)
 
     def get_xml(self):
         pass
+
+    def __str__(self):
+        s = "\tMeasure: "
+        for elem in self.elements:
+            s +=  str(elem) + " "
+        return s
 
 class Chord:
     def __init__(self):
@@ -43,6 +55,13 @@ class Chord:
 
     def get_xml(self):
         return "".join([i.get_xml() for i in self.notes])
+
+    def __str__(self):
+        s = "Chord< "
+        for note in self.notes:
+            s += str(note) + " "
+        s += ">"
+        return s
 
 class Note:
     def __init__(self, pitch, octave, note_length, dot=False, semi=""):
@@ -77,6 +96,10 @@ class Note:
     def get_xml(self):
         return "\n\t\t\t<note>{}\n\t\t\t\t<pitch>\n\t\t\t\t\t<step>{}</step>\n\t\t\t\t\t<octave>{}</octave>\n\t\t\t\t\t<alter>{}</alter>\n\t\t\t\t</pitch>\n\t\t\t\t<type>{}</type>{}\n\t\t\t</note>".format(self._chord_string, self.pitch, self.octave, self.semi, self.note_length, self.dot_string)
 
+    def __str__(self):
+        if self.dot_string != "":
+            return self.pitch + str(self.octave) + "-" + self.note_length + "*"
+        return self.pitch + str(self.octave) + "-" + self.note_length
 class Rest:
     def __init__(self, note_length, dot=False):
         self.note_length = note_length
@@ -84,3 +107,8 @@ class Rest:
 
     def get_xml(self):
         return "\n\t\t\t<note>\n\t\t\t\t<rest/>\n\t\t\t\t<type>{}</type>{}\n\t\t\t</note>".format(self.note_length, self.dot_string)
+
+    def __str__(self):
+        if self.dot_string != "":
+            return "rest-" + self.note_length + "*"
+        return "rest-" + self.note_length
