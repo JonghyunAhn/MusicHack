@@ -39,7 +39,7 @@ class Score:
 class Measure:
     def __init__(self):
         self.elements = []
-        self.first_measure_string = "\n\t\t\t<attributes>\m\t\t\t\t<divisions>1</divisions>\n\t\t\t</attributes>"
+        self.first_measure_string = "\n\t\t\t<attributes>\n\t\t\t\t<divisions>1</divisions>\n\t\t\t</attributes>"
 
     def add_element(self, element):
         self.elements.append(element)
