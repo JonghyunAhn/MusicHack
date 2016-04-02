@@ -27,7 +27,7 @@ class Score:
         return '<score-partwise version="3.0">\n\t<part-list>\n\t\t<score-part id="P0">\n\t\t\t<part-name>{}</part-name>\n\t\t</score-part>\n\t</part-list>\n\t<part id="P0">'.format(self.name) + "".join([i.get_xml() for i in self.measures]) + "\n\t</part>\n</score-partwise>"
 
     def write_to_file(self):
-        with open(self.name, 'w') as f:
+        with open(self.name + ".xml", 'w') as f:
             f.write(self.get_xml())
 
     def __str__(self):
