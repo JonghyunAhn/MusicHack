@@ -44,6 +44,11 @@ class Measure:
     def add_element(self, element):
         self.elements.append(element)
 
+    def get_last(self):
+        if len(self.elements) == 0:
+            return None
+        return self.elements[-1]
+
     def set_measure_number(self, number):
         self.number = number
 
@@ -104,6 +109,9 @@ class Note:
             self.semi = 2
         else:
             self.semi = 0
+
+    def set_dot(self, dot):
+        self.dot_string = "\n\t\t\t\t<dot/>" if dot else ""
 
     def set_chord(self):
         self.chord_string = "\n\t\t\t\t<chord/>"
