@@ -16,13 +16,16 @@ beatToNum = {"16th" : 0.25,    # d signals dotted note
 			 "whole" : 4}
 numToBeat = dict((y, x) for x, y in beatToNum.iteritems())
 numToBeat[3.75] = "whole"
+numToBeat[3.5] = "whole"
+
 
 
 ##Jong calls this. Passes in array of arrays of notes, sample rate, and tempo
 ## Tempo (bpm)
-def processNotes(notes, sampleRate, tempo = 120):
+def processNotes(notes = [], sampleRate = 44100.0, tempo = 120.0):
+
 	notes = filterNoise(notes)
-	deltaT = 1.0/sampleRate
+	deltaT = 1.0/(sampleRate/4096.0)
 	beatsPerSec = tempo/60.0
 	beatLength = 1.0/beatsPerSec
 	beatsPerMeasure = 4 #assumed
@@ -125,43 +128,62 @@ def beatsToXML(beats):
 					print "Something went wrong, beat is greater than 4."
 				notes = measBeats[beat] #list [(pitch, length)]
 				if currBeat < beat: # Fill in a rest
-					restLen = numToBeat[beat-currBeat]
-					restLen, dotted = convDot(restLen, 4)
-					thisMeasure.add_element(Rest(restLen, dotted))
-					currBeat = beat
+					fillInRest(thisMeasure, beat - currBeat)
 
 				lenMax = 4 - currBeat
-				if len(notes) > 1: # Make chord
-					c = Chord()
-					chordLen = notes[0][1] #assume all notes in chord same len
-					if beatToNum[chordLen] > lenMax: #rest of chord overflows into next measure
-						overflowLen = beatToNum[chordLen] - lenMax
-						addOverflow(notes, numToBeat[overflowLen], beats, measNum + 1)
-						trailingMeasures = True
-					chordLen, dotted = convDot(chordLen, lenMax)
-					for note in notes:
-						pitch, octave = convPitch(note[0])
-						c.add_note(Note(pitch, octave, chordLen, dotted))
-					thisMeasure.add_element(c)
-					currBeat += min(beatToNum[chordLen], lenMax)
+				if lenMax != 0:
+					if len(notes) > 1: # Make chord
+						c = Chord()
+						chordLen = notes[0][1] #assume all notes in chord same len
+						if beatToNum[chordLen] > lenMax: #rest of chord overflows into next measure
+							overflowLen = beatToNum[chordLen] - lenMax
+							addOverflow(notes, numToBeat[overflowLen], beats, measNum + 1)
+							trailingMeasures = True
+						chordLen, dotted = convDot(chordLen, lenMax)
+						for note in notes:
+							pitch, octave = convPitch(note[0])
+							c.add_note(Note(pitch, octave, chordLen, dotted))
+						thisMeasure.add_element(c)
+						currBeat += min(beatToNum[chordLen], lenMax)
 
-				elif len(notes) == 1: # Make note
-					if (beatToNum[notes[0][1]] + currBeat) > 4: #rest of note overflows into next measure
-						overflowLen = (beatToNum[notes[0][1]] + currBeat) - 4
-						addOverflow(notes, numToBeat[overflowLen], beats, measNum + 1)
-						trailingMeasures = True
-					noteLen, dotted = convDot(notes[0][1], lenMax)
-					pitch, octave = convPitch(notes[0][0])
-					thisMeasure.add_element(Note(pitch, octave, noteLen, dotted))
-					currBeat += min(beatToNum[notes[0][1]], lenMax)
-				else: 
-					print "Something went wrong in dataToNotes.py, beatsToXML."
+					elif len(notes) == 1: # Make note
+						if (beatToNum[notes[0][1]] + currBeat) > 4: #rest of note overflows into next measure
+							overflowLen = (beatToNum[notes[0][1]] + currBeat) - 4
+							addOverflow(notes, numToBeat[overflowLen], beats, measNum + 1)
+							trailingMeasures = True
+						noteLen, dotted = convDot(notes[0][1], lenMax)
+						pitch, octave = convPitch(notes[0][0])
+						thisMeasure.add_element(Note(pitch, octave, noteLen, dotted))
+						currBeat += min(beatToNum[notes[0][1]], lenMax)
+					else: 
+						print "Something went wrong in dataToNotes.py, beatsToXML."
 			if currBeat < 4: # trailing rest in measure
-				restLen, dotted = convDot(numToBeat[4 - currBeat], 4)
-				thisMeasure.add_element(Rest(restLen, dotted))
+				fillInRest(thisMeasure, 4-currBeat)
 		measNum += 1
 	print score
 	score.write_to_file()
+
+def fillInRest(measure, numBeats):
+	numBeats = round(numBeats * 16) / 16
+	if numBeats == 0.25:
+		measure.add_element(Rest("16th"))
+	elif numBeats == 0.5:
+		measure.add_element(Rest("eighth"))
+	elif numBeats == 0.75:
+		measure.add_element(Rest("eighth", True))
+	elif numBeats <= 1.25:
+		measure.add_element(Rest("quarter"))
+	elif numBeats == 1.5:
+		measure.add_element(Rest("eighth"))
+		measure.add_element(Rest("quarter"))
+	elif numBeats <= 2.5:
+		measure.add_element(Rest("half"))
+	elif numBeats <= 3.5:
+		measure.add_element(Rest("quarter"))
+		measure.add_element(Rest("half"))
+	else:
+		measure.add_element(Rest("whole"))
+
 
 ##Helper function for beatsToXML
 # notes: list [(pitch, length)], length is previous length, don't use.
@@ -186,7 +208,9 @@ def convDot(beatLen, lenMax):
 	return (beatLen, dotted)
 
 def convPitch(pitch):
-	return pitch[0], int(pitch[1])
+	if len(pitch) == 2:
+		return pitch[0], int(pitch[1])
+	return pitch[0:2], int(pitch[2])
 
 def approxBeatNum16(time, beatLength): 
 	beat = time/beatLength
@@ -229,6 +253,33 @@ def makeNotes(freq):
 	return out
 
 def test():
-	processNotes(makeNotes(4), 4, 60)
+	#processNotes(makeNotes(4), 4, 60)
 
-test()
+	notes = []
+	arr = []
+	inArray = False
+	note = ""
+	inNote = False
+	with open("./output.txt", 'r') as f:
+		while True:
+			c = f.read(1)
+			if not c:
+				break
+			if c == '[':
+				inArray = True
+			elif c == ']':
+				notes.append(arr)
+				arr = []
+				inArray = False
+			elif c == '\'' and not inNote:
+				inNote = True
+			elif c == '\'' and inNote:
+				inNote = False
+				arr.append(note)
+				note = ""
+			elif inNote:
+				note += c
+	processNotes(notes)
+
+if __name__ == "__main__":
+	test()
