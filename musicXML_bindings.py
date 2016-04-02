@@ -49,7 +49,7 @@ class Chord:
         pass
 
 class Note:
-    def __init__(self, pitch, octave, note_length, dot, semi=""):
+    def __init__(self, pitch, octave, note_length, dot, semi="", chord=False):
         """
         Parameters
         ----------
