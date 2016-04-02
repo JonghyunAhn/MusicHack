@@ -55,28 +55,74 @@ def findNoteTimes(allNotes, deltaT):
 # beatLength: length of a single beat in seconds
 # beatsPerMeasure: Number of beats per measure.
 def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
-	# Do one pass to approximate start and ending beat for each note.
-	for _ in range(len(startEndTimes)):
+	# Do one pass to approximate start and ending beat for each note, and group chords.
+	notes = [] #List of (pitches, beatNum, length, measNum, beatInMeas), e.g. (["c3", "e3"], 21, 0.5, 5, 1). 
+	beats = {} # Dict of dicts {measNum : {beatInMeas: [(pitch, length)]}}
+	lengths = ["whole", "half", "quarter", "eighth", "sixteenth"]
+	for note in startEndTimes:
+		#Extract useful values for this note
+		pitch = note[0]
+		startBeat = approxBeatNum16(note[1], beatLength)
+		endBeat = approxBeatNum16(note[2], beatLength)
+		beatLen = endBeat - startBeat
+		if beatLen == 4:
+			beatLen = lengths[0]
+		elif beatLen == 2:
+			beatLen = lengths[1]
+		elif beatLen == 1:
+			beatLen = lengths[2]
+		elif beatLen == 0.5:
+			beatLen = lengths[3]
+		elif beatLen == 0.25:
+			beatLen = lengths[4]
+		measNum = startBeat//beatsPerMeasure
+		beatInMeas = startBeat% beatsPerMeasure
 
+		# Add this information to notes and beats
+		notes.append((pitch, startBeat, beatLen, measNum, beatInMeas))
+		if measNum not in beats:
+			beats[measNum] = {}
+		thisMeasure = beats[measNum]
+		if beatInMeas not in thisMeasure:
+			thisMeasure[beatInMeas] = []
+		thisMeasure[beatInMeas].append((pitch, beatLen))
+	print "Notes: ", notes
+	print "Beats: ", beats
+
+
+def approxBeatNum16(time, beatLength): 
+	beat = time/beatLength
+	return round(beat * 4) / 4
+
+def approxBeatNum8(time, beatLength):
+	beat = time/beatLength
+	return round(beat * 2) / 2
+
+def approxBeatNum4(time, beatLength):
+	return round(time/beatLength)
 
 def filterNoise(notes):
 	return notes
 
 def makeNotes(freq):
-	notes = [("ac", 2), ("b", 1), ("a", 1), ("r", 4), ("c", 4)]
+	# Use only a "r" in notes to specify a rest. Use "abc" or corresponding values to specify chord".
+	notes = [("ac", 2), ("b", 1), ("a", 1), 
+		("r", 4), 
+		("c", 4), 
+		("a", 0.25), ("b", 0.25), ("c", 0.5), ("a", 0.5),  ("b", 0.5), ("r", 2)]
 	out = []
 	for note in notes:
 		pitches = note[0]
 		length = note[1]
 		if pitches == "r":
-			for _ in range(length) * freq:
+			for _ in range(int(length * freq)):
 				out.append([])
 		else: 
-			for _ in range(length) * freq:
+			for _ in range(int(length * freq)):
 				out.append([pitch for pitch in pitches])
 	return out
 
 def test():
-	processNotes(makeNotes(2), 2, 60)
+	processNotes(makeNotes(4), 4, 60)
 
 test()
