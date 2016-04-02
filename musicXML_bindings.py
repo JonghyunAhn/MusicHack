@@ -2,7 +2,11 @@
 # each function writes sequentially
 
 class Score:
-    pass
+    def __init__(self, name, beats, beat_type):
+        pass
+
+    def add_measure(self, measure):
+        pass
 
 class Measure:
     def __init__(self):
