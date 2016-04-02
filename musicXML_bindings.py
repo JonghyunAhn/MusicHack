@@ -49,7 +49,7 @@ class Chord:
         pass
 
 class Note:
-    def __init__(self, pitch, octave, note_length, dot, semi="", chord=False):
+    def __init__(self, pitch, octave, note_length, dot=False, semi="", _chord=False):
         """
         Parameters
         ----------
@@ -58,11 +58,13 @@ class Note:
         note_length: string, the length of the note (quarter, half, whole, etc.)
         dot: boolean, if there is a dot following the note
         semi: string, the semitone i.e. sharp or flat
+        _chord: boolean, ignore this, internal use only
         """
         self.pitch = pitch
         self.octave = octave
         self.note_length = note_length
         self.dot_string = "\n\t\t\t\t<dot/>" if dot else ""
+        self._chord_string = "\n\t\t\t\t<chord/>" if _chord else ""
         if semi == "flat":
             self.semi = -1
         elif semi == "double flat":
@@ -75,11 +77,12 @@ class Note:
             self.semi = 0
 
     def get_xml(self):
-        return "\n\t\t\t<note>\n\t\t\t\t<pitch>\n\t\t\t\t\t<step>{}</step>\n\t\t\t\t\t<octave>{}</octave>\n\t\t\t\t\t<alter>{}</alter>\n\t\t\t\t</pitch>\n\t\t\t\t<type>{}</type>{}\n\t\t\t</note>".format(self.pitch, self.octave, self.semi, self.note_length, self.dot_string)
+        return "\n\t\t\t<note>{}\n\t\t\t\t<pitch>\n\t\t\t\t\t<step>{}</step>\n\t\t\t\t\t<octave>{}</octave>\n\t\t\t\t\t<alter>{}</alter>\n\t\t\t\t</pitch>\n\t\t\t\t<type>{}</type>{}\n\t\t\t</note>".format(self._chord_string, self.pitch, self.octave, self.semi, self.note_length, self.dot_string)
 
 class Rest:
-    def __init__(self, note_length):
+    def __init__(self, note_length, dot=False):
         self.note_length = note_length
+        self.dot_string = "\n\t\t\t\t<dot/>" if dot else ""
 
     def get_xml(self):
-        return "\n\t\t\t<note>\n\t\t\t\t<rest/>\n\t\t\t\t<type>{}</type>\n\t\t\t</note>".format(self.note_length)
+        return "\n\t\t\t<note>\n\t\t\t\t<rest/>\n\t\t\t\t<type>{}</type>{}\n\t\t\t</note>".format(self.note_length, self.dot_string)
