@@ -1,0 +1,32 @@
+@import url(https://fonts.googleapis.com/css?family=ABeeZee);
+
+form {
+	/* Center the form on the page */
+	margin: 0 auto;
+	width: 400px;
+	/* Outline the form */
+	font-family: 'ABeeZee', sans-serif;
+	padding: 2em;
+	border: 1px solid #CCC;
+	border-radius: 1em;
+}
+
+form div + div {
+	/*Spacing bullshit
+	margin-top: 2em;
+}
+input{
+	/* Default font bullshit =  monospace font */
+	font-family:'Allura', sans-serif;	
+	font-size: 1em;
+	text-align:center;
+}
+input:focus, canvas:focus {
+	/* Highlighting active widgets bullshit */
+	border-color: #000;
+}
+button{
+	font-family: 'ABeeZee', sans-serif;
+}
+
+
