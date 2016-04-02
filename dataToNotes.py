@@ -18,7 +18,7 @@ numToBeat = dict((y, x) for x, y in beatToNum.iteritems())
 
 ##Jong calls this. Passes in array of arrays of notes, sample rate, and tempo
 ## Tempo (bpm)
-def processNotes(notes, sampleRate, tempo):
+def processNotes(notes, sampleRate, tempo = 120):
 	notes = filterNoise(notes)
 	deltaT = 1.0/sampleRate
 	beatsPerSec = tempo/60
@@ -73,19 +73,20 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 		pitch = note[0]
 		startBeat = approxBeatNum16(note[1], beatLength)
 		endBeat = approxBeatNum16(note[2], beatLength)
-		beatLen = numToBeat[endBeat - startBeat]
-		measNum = startBeat//beatsPerMeasure
-		totalNumMeasures = measNum #Probably safe since they're in order
-		beatInMeas = startBeat% beatsPerMeasure
+		if endBeat - startBeat != 0:
+			beatLen = numToBeat[endBeat - startBeat]
+			measNum = startBeat//beatsPerMeasure
+			totalNumMeasures = measNum #Probably safe since they're in order
+			beatInMeas = startBeat% beatsPerMeasure
 
-		# Add this information to notes and beats
-		notes.append((pitch, startBeat, beatLen, measNum, beatInMeas))
-		if measNum not in beats:
-			beats[measNum] = {}
-		thisMeasure = beats[measNum]
-		if beatInMeas not in thisMeasure:
-			thisMeasure[beatInMeas] = []
-		thisMeasure[beatInMeas].append((pitch, beatLen))
+			# Add this information to notes and beats
+				notes.append((pitch, startBeat, beatLen, measNum, beatInMeas))
+				if measNum not in beats:
+					beats[measNum] = {}
+				thisMeasure = beats[measNum]
+				if beatInMeas not in thisMeasure:
+					thisMeasure[beatInMeas] = []
+				thisMeasure[beatInMeas].append((pitch, beatLen))
 	print "Notes: ", notes
 	print "Beats: ", beats
 	beatsToXML(beats)
@@ -149,6 +150,7 @@ def beatsToXML(beats):
 				thisMeasure.add_element(Rest(restLen, dotted))
 		measNum += 1
 	print score
+	score.write_to_file()
 
 ##Helper function for beatsToXML
 # notes: list [(pitch, length)], length is previous length, don't use.
