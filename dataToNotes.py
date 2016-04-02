@@ -155,7 +155,7 @@ def beatsToXML(beats):
 				if currBeat < beat: # Fill space with note or rest
 					lastElem = thisMeasure.get_last()
 					print lastElem, type(lastElem)
-					if lastElem != None:
+					if lastElem != None and isinstance(lastElem, Note):
 						print "attempted extend"
 
 						#extend note to now, if possible
@@ -200,7 +200,7 @@ def beatsToXML(beats):
 			if currBeat < 4: # fill rest of measure with note or rest
 				lastElem = thisMeasure.get_last()
 				print lastElem, type(lastElem)
-				if lastElem != None:
+				if lastElem != None and isinstance(lastElem, Note):
 					print "attempted extend"
 					#extend note to now, if possible
 					newLen = 4 - currBeat + dottedLengthToNum(lastElem.note_length, lastElem.dot_string != "")
