@@ -2,6 +2,8 @@ import librosa as lib
 import sklearn.decomposition as decomp
 import numpy as np
 
+import dataToNotes as data 
+
 from scipy import signal
 
 INDEX_TO_NOTE = {1 : 'C', 2: 'C#', 3: 'D', 4: 'D#', 5:'E', 6:'F', 7:'F#', 8:'G', 9: 'G#', 10: 'A', 11: 'A#', 12: 'B'}
@@ -14,39 +16,61 @@ def loudness_filter(song):
     filter_song = signal.lfilter(b2, a2, signal.lfilter(b1, a1, song))
     return filter_song
 
-def load_song(audio_file, sr=44100):
-    song, sr_song = lib.load(audio_file, sr=sr)
+def load_song(audio_file, sr=44100., duration = None):
+    song, sr_song = lib.load(audio_file, sr=sr, duration = duration)
     if len(song.shape) == 2:
         song = np.average(song, axis=1)
-    tuning = lib.estimate_tuning(song)
     song = loudness_filter(song)
-    return song, sr_song, tuning 
+    return song, sr_song 
 
-def find_essential_notes(song, sr, tuning):
-    cqt = np.abs(lib.cqt(song, sr=sr, hop_length=256, n_bins=84, bins_per_octave=12, norm=2,real=False, tuning=tuning))
+def find_essential_notes(song, sr):
+    cqt = np.abs(lib.cqt(song, sr=sr, hop_length=256, n_bins=84, bins_per_octave=12,real=False, filter_scale=1.0))
     strong_elem = []
     for time_slice in cqt.T:
         local_peaks = signal.argrelextrema(time_slice, np.greater)[0]
         peaks = []
         for elem in local_peaks:
             db = 20 * np.log10(time_slice[elem])
-            if db > -80:
+            if db > -110:
                 peaks.append(elem)
         strong_elem.append(peaks)
+        
+    weight1 = 1.0
+    weight2 = 1.5
+    weight3 = 2.0
 
+    notes_idx = []
+    for idx,notes in enumerate(strong_elem):
+        if len(notes) == 0 or len(notes_idx) == 0:
+            notes_idx.append(notes)
+        else:
+            if len(notes_idx[idx-1]) == 0:
+                notes_idx.append([notes[0]])                   
+            else:
+                prev_note = notes_idx[idx-1]
+                power_sum = sum(cqt[note][idx] for note in notes)
+                note_choice = []
+                for note in notes:
+                    score = weight1 * cqt[note][idx]/power_sum - weight2 * abs(note - prev_note)/84. - weight3 * abs(84/2. - note)/84.
+                    note_choice.append((score,note))
+                notes_idx.append([max(note_choice)[1]])
+                                           
     notes = []
-    for time_slice in strong_elem:
-        note_slice = [(idx/12 + 1, idx % 12 + 1) for idx in time_slice]
+    for peaks in notes_idx:
+        note_slice = [(idx/12 + 1, idx % 12 + 1) for idx in peaks]
         note_slice = [INDEX_TO_NOTE[note[1]]+ str(note[0]) for note in note_slice]
         notes.append(note_slice)
 
     return notes
 
 def extract_tempo(song, sr):
-    return 
+    tempo, _ = lib.beat.beat_track(song, sr=sr)
+    return tempo
 
 def test():
-    song,sr, tuning = load_song('./twinkle.mp3')
-    print find_essential_notes(song, sr, tuning)
+    song,sr = load_song('./canon.mp3', duration=60)
+    notes = find_essential_notes(song, sr)
+    tempo = extract_tempo(song, sr) / 2
+    data.processNotes(notes, float(sr), tempo=tempo) 
 
 if __name__ == '__main__': test()
