@@ -15,14 +15,16 @@ beatToNum = {"16th" : 0.25,    # d signals dotted note
 			 "dhalf" : 3,
 			 "whole" : 4}
 numToBeat = dict((y, x) for x, y in beatToNum.iteritems())
+numToBeat[3.75] = "whole"
+
 
 ##Jong calls this. Passes in array of arrays of notes, sample rate, and tempo
 ## Tempo (bpm)
 def processNotes(notes, sampleRate, tempo = 120):
 	notes = filterNoise(notes)
 	deltaT = 1.0/sampleRate
-	beatsPerSec = tempo/60
-	beatLength = 1/beatsPerSec
+	beatsPerSec = tempo/60.0
+	beatLength = 1.0/beatsPerSec
 	beatsPerMeasure = 4 #assumed
 
 
@@ -73,20 +75,29 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 		pitch = note[0]
 		startBeat = approxBeatNum16(note[1], beatLength)
 		endBeat = approxBeatNum16(note[2], beatLength)
-		if endBeat - startBeat != 0:
-			beatLen = numToBeat[endBeat - startBeat]
+		measNum = startBeat//beatsPerMeasure
+		beatLen = endBeat - startBeat
+		if endBeat > (measNum + 1) * 4:
+			beatLen = (measNum + 1) * 4 - startBeat
+		if beatLen != 0:
+			if beatLen <= 1:
+				beatLen = numToBeat[approxBeatNum16(beatLen, 1)]
+			elif beatLen <= 2: 
+				beatLen = numToBeat[approxBeatNum8(beatLen, 1)]
+			else:
+				beatLen = numToBeat[approxBeatNum4(beatLen, 1)]
 			measNum = startBeat//beatsPerMeasure
 			totalNumMeasures = measNum #Probably safe since they're in order
 			beatInMeas = startBeat% beatsPerMeasure
 
 			# Add this information to notes and beats
-				notes.append((pitch, startBeat, beatLen, measNum, beatInMeas))
-				if measNum not in beats:
-					beats[measNum] = {}
-				thisMeasure = beats[measNum]
-				if beatInMeas not in thisMeasure:
-					thisMeasure[beatInMeas] = []
-				thisMeasure[beatInMeas].append((pitch, beatLen))
+			notes.append((pitch, startBeat, beatLen, measNum, beatInMeas))
+			if measNum not in beats:
+				beats[measNum] = {}
+			thisMeasure = beats[measNum]
+			if beatInMeas not in thisMeasure:
+				thisMeasure[beatInMeas] = []
+			thisMeasure[beatInMeas].append((pitch, beatLen))
 	print "Notes: ", notes
 	print "Beats: ", beats
 	beatsToXML(beats)
@@ -203,7 +214,8 @@ def makeNotes(freq):
 		("A5", 1.5), ("r", 0.5), ("B5", 0.75), ("r", 0.25), ("C5", 1),
 		("A3", 0.75), ("A2", 0.25), ("A3", 0.25), ("r", 0.75), ("C3", 2), 
 		("A2", 3), ("B2", 2), ("r", 3),
-		("A3", 2), ("B2", 4)]
+		("A3", 2), ("B2", 2),
+		("A3", 2.75)]
 	out = []
 	for note in notes:
 		pitches = note[0]
