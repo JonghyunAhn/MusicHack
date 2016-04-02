@@ -26,8 +26,8 @@ class Measure:
     def __init__(self):
         self.elements = []
 
-    def add_element(self, elements):
-        pass
+    def add_element(self, element):
+        self.elements.add(element)
 
     def get_xml(self):
         pass
