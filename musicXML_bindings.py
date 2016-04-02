@@ -48,7 +48,7 @@ class Measure:
         self.number = number
 
     def set_first_measure(self, beats, beat_type):
-        self.first_measure_string = "\n\t\t\t<attributes>\n\t\t\t\t<divisions>1</divisions\n\t\t\t\t<time>\n\t\t\t\t\t<beats>{}</beats>\n\t\t\t\t\t<beat-type>{}</beat-type>\n\t\t\t\t</time>\n\t\t\t\t<clef>\n\t\t\t\t\t<sign>G</sign>\n\t\t\t\t\t<line>2</line>\n\t\t\t\t</clef>\n\t\t\t</attributes>".format(beats, beat_type)
+        self.first_measure_string = "\n\t\t\t<attributes>\n\t\t\t\t<divisions>1</divisions>\n\t\t\t\t<time>\n\t\t\t\t\t<beats>{}</beats>\n\t\t\t\t\t<beat-type>{}</beat-type>\n\t\t\t\t</time>\n\t\t\t\t<clef>\n\t\t\t\t\t<sign>G</sign>\n\t\t\t\t\t<line>2</line>\n\t\t\t\t</clef>\n\t\t\t</attributes>".format(beats, beat_type)
 
     def get_xml(self):
         return '\n\t\t<measure number="{}">{}'.format(self.number, self.first_measure_string) + "".join([i.get_xml() for i in self.elements]) + "\n\t\t</measure>"
