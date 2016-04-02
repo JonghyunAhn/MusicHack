@@ -25,7 +25,7 @@ numToBeat[1.75] = "half"
 numToBeat[1.25] = "quarter"
 ##Jong calls this. Passes in array of arrays of notes, sample rate, and tempo
 ## Tempo (bpm)
-def processNotes(notes = [], sampleRate = 44100.0, tempo = 110.0):
+def processNotes(notes = [], sampleRate = 44100.0, tempo = 72):
 
 	notes = filterNoise(notes)
 	deltaT = 1.0/(sampleRate/512.0)
@@ -47,9 +47,13 @@ def findNoteTimes(allNotes, deltaT):
 	currentNotes = {} #pitch : [startTime, lastSeen]
 	out = []
 	time = 0
-	for notes in allNotes:
-		prevNotes = set(list(currentNotes.keys())) ##Double check that this list is populated correctly
-		
+	i = 0
+	while allNotes[i] == []: # cut off empty time in front
+		i+= 1
+	while i < len(allNotes):
+		notes = allNotes[i]
+		i+=1
+		prevNotes = set(list(currentNotes.keys())) 
 		# Update notes in this timestamp
 		for note in notes: 
 			if note not in currentNotes: # note is starting here
@@ -91,8 +95,8 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 		#Extract useful values for this note
 
 		pitch = note[0]
-		startBeat = approxBeatNum16(note[1], beatLength)
-		endBeat = approxBeatNum16(note[2], beatLength)
+		startBeat = approxBeatNum8(note[1], beatLength)
+		endBeat = approxBeatNum8(note[2], beatLength)
 		measNum = startBeat//beatsPerMeasure
 		beatLen = endBeat - startBeat
 		if endBeat > (measNum + 1) * 4:
