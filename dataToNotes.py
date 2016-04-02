@@ -95,8 +95,8 @@ def convertToXML(startEndTimes, beatLength, beatsPerMeasure):
 		#Extract useful values for this note
 
 		pitch = note[0]
-		startBeat = approxBeatNum8(note[1], beatLength)
-		endBeat = approxBeatNum8(note[2], beatLength)
+		startBeat = approxBeatNum16(note[1], beatLength)
+		endBeat = approxBeatNum16(note[2], beatLength)
 		measNum = startBeat//beatsPerMeasure
 		beatLen = endBeat - startBeat
 		if endBeat > (measNum + 1) * 4:

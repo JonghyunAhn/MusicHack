@@ -24,7 +24,7 @@ def load_song(audio_file, sr=44100., duration = None):
     return song, sr_song 
 
 def find_essential_notes(song, sr):
-    cqt = np.abs(lib.cqt(song, sr=sr, hop_length=256, n_bins=84, bins_per_octave=12,real=False, filter_scale=1.0))
+    cqt = np.abs(lib.cqt(song, sr=sr, hop_length=128, n_bins=84, bins_per_octave=12,real=False, filter_scale=0.75))
     strong_elem = []
     for time_slice in cqt.T:
         local_peaks = signal.argrelextrema(time_slice, np.greater)[0]
@@ -37,7 +37,7 @@ def find_essential_notes(song, sr):
         
     weight1 = 1.0
     weight2 = 1.5
-    weight3 = 2.0
+    weight3 = 1.0
 
     notes_idx = []
     for idx,notes in enumerate(strong_elem):
@@ -45,7 +45,12 @@ def find_essential_notes(song, sr):
             notes_idx.append(notes)
         else:
             if len(notes_idx[idx-1]) == 0:
-                notes_idx.append([notes[0]])                   
+                note_choice = []
+                power_sum = sum(cqt[note][idx] for note in notes)
+                for note in notes:
+                    score = weight1 * cqt[note][idx]/power_sum - weight3 * abs(84/2. - note)/84.
+                    note_choice.append((score,note))
+                notes_idx.append([max(note_choice)[1]])
             else:
                 prev_note = notes_idx[idx-1]
                 power_sum = sum(cqt[note][idx] for note in notes)
@@ -68,9 +73,9 @@ def extract_tempo(song, sr):
     return tempo
 
 def test():
-    song,sr = load_song('./canon.mp3', duration=60)
+    song,sr = load_song('./rondo.mp3')
     notes = find_essential_notes(song, sr)
-    tempo = extract_tempo(song, sr) / 2
+    tempo = extract_tempo(song, sr) / 4
     data.processNotes(notes, float(sr), tempo=tempo) 
 
 if __name__ == '__main__': test()
